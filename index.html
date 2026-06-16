@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Heladeria Don Freddo</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f0; color: #222; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 2rem 1rem; }
+    h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    .subtitulo { font-size: 14px; color: #666; margin-bottom: 1.5rem; }
+    .sabores-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .sabor-card { background: white; border: 1px solid #e0e0d8; border-radius: 10px; padding: 12px; cursor: pointer; transition: border-color 0.15s; }
+    .sabor-card.seleccionado { border: 2px solid #D85A30; }
+    .sabor-dot { width: 34px; height: 34px; border-radius: 50%; margin-bottom: 8px; }
+    .sabor-nombre { font-size: 13px; font-weight: 500; }
+    .sabor-precio { font-size: 12px; color: #888; margin-top: 3px; }
+    .envases { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+    .envase-btn { flex: 1; padding: 10px; border: 1px solid #e0e0d8; border-radius: 8px; background: white; font-size: 13px; cursor: pointer; }
+    .envase-btn.seleccionado { border: 2px solid #D85A30; font-weight: 500; }
+    .carrito { background: #efefea; border-radius: 12px; padding: 14px 16px; margin-bottom: 1.5rem; }
+    .carrito h3 { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+    .carrito-fila { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #e0e0d8; color: #444; }
+    .carrito-fila:last-child { border: none; }
+    .total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 500; padding-top: 10px; }
+    .fila-nombre { display: flex; gap: 8px; margin-bottom: 1rem; }
+    input[type=text] { flex: 1; padding: 10px 12px; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 14px; background: white; }
+    button.confirmar { background: #D85A30; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; cursor: pointer; }
+    button.confirmar:disabled { background: #ccc; cursor: not-allowed; }
+    .exito { background: #E1F5EE; color: #0F6E56; border-radius: 10px; padding: 14px 16px; font-size: 14px; text-align: center; }
+    .badge { background: #FAECE7; color: #993C1D; font-size: 11px; padding: 2px 7px; border-radius: 10px; margin-left: 6px; }
+    .label { font-size: 12px; color: #888; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const BACKEND = "http://localhost:5000";
+
+function App() {
+  const [sabores, setSabores] = React.useState([]);
+  const [seleccionado, setSeleccionado] = React.useState(null);
+  const [envase, setEnvase] = React.useState("Cucurucho");
+  const [cliente, setCliente] = React.useState("");
+  const [exito, setExito] = React.useState(false);
+  const [cargando, setCargando] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch(`${BACKEND}/sabores`)
+      .then(r => r.json())
+      .then(setSabores);
+  }, []);
+
+  const total = seleccionado ? seleccionado.precio : 0;
+
+  const confirmar = async () => {
+    if (!seleccionado || !cliente.trim()) return;
+    setCargando(true);
+    await fetch(`${BACKEND}/pedido`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cliente: cliente.trim(),
+        sabor: seleccionado.nombre,
+        envase,
+        total
+      })
+    });
+    setCargando(false);
+    setExito(true);
+  };
+
+  if (exito) return (
+    <div className="container">
+      <div className="exito">
+        <p style={{fontSize:"18px", marginBottom:"8px"}}>Pedido confirmado!</p>
+        <p>Gracias <strong>{cliente}</strong>! Tu {seleccionado.nombre} en {envase} ya está en preparación.</p>
+        <p style={{marginTop:"8px", fontSize:"13px", color:"#1D9E75"}}>Total: ${total}</p>
+        <button onClick={() => { setExito(false); setSeleccionado(null); setCliente(""); }}
+          style={{marginTop:"14px", background:"#1D9E75", color:"white", border:"none", borderRadius:"8px", padding:"8px 16px", cursor:"pointer", fontSize:"13px"}}>
+          Nuevo pedido
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="container">
+      <h1>Heladeria Don Gonza</h1>
+      <p className="subtitulo">Elegí tu sabor y hacé tu pedido</p>
+
+      <p className="label">Sabores disponibles</p>
+      <div className="sabores-grid">
+        {sabores.map(s => (
+          <div key={s.id}
+            className={`sabor-card ${seleccionado?.id === s.id ? "seleccionado" : ""}`}
+            onClick={() => setSeleccionado(s)}>
+            <div className="sabor-dot" style={{background: s.color}}></div>
+            <p className="sabor-nombre">{s.nombre}</p>
+            <p className="sabor-precio">${s.precio}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="label">Tipo de envase</p>
+      <div className="envases">
+        {["Cucurucho", "Vasito", "1/4 kg"].map(e => (
+          <button key={e} className={`envase-btn ${envase === e ? "seleccionado" : ""}`}
+            onClick={() => setEnvase(e)}>{e}</button>
+        ))}
+      </div>
+
+      <div className="carrito">
+        <h3>Tu pedido</h3>
+        {seleccionado ? (
+          <div className="carrito-fila">
+            <span>{seleccionado.nombre} <span className="badge">seleccionado</span></span>
+            <span>${seleccionado.precio}</span>
+          </div>
+        ) : (
+          <div className="carrito-fila"><span style={{color:"#aaa"}}>Ningún sabor elegido</span></div>
+        )}
+        <div className="carrito-fila"><span>Envase: {envase}</span><span>$0</span></div>
+        <div className="total"><span>Total</span><span>${total}</span></div>
+      </div>
+
+      <div className="fila-nombre">
+        <input type="text" placeholder="Tu nombre..." value={cliente} onChange={e => setCliente(e.target.value)} />
+        <button className="confirmar" onClick={confirmar}
+          disabled={!seleccionado || !cliente.trim() || cargando}>
+          {cargando ? "Enviando..." : "Confirmar pedido"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
