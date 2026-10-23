@@ -1,0 +1,18 @@
+# Secretos y configuración local
+.env
+
+# Back (Python)
+.venv/
+__pycache__/
+*.pyc
+*.db
+wallet/
+
+# Front (Node)
+node_modules/
+dist/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
